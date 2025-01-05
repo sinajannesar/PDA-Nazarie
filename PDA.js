@@ -32,17 +32,42 @@ class PDA {
 
         return this.finalStates.has(this.currentState);
     }
-    }
-
-
-    function parsePDA(filePath) {
-        const [alphabetCount, , ...lines] = fs.readFileSync(filePath, "utf8").trim().split("\n");
-        const finalStates = lines[alphabetCount].split(" ").map(Number);
-        const transitions = lines.slice(alphabetCount + 2).map((line) => {
-            const [from, symbol, to, pop, push] = line.split(" ");
-            return { from: +from, symbol, to: +to, pop, push };
-          });
-
-          return new PDA(transitions, finalStates);
 }
 
+
+function parsePDA(filePath) {
+    const [alphabetCount, , ...lines] = fs.readFileSync(filePath, "utf8").trim().split("\n");
+    const finalStates = lines[alphabetCount].split(" ").map(Number);
+    const transitions = lines.slice(alphabetCount + 2).map((line) => {
+        const [from, symbol, to, pop, push] = line.split(" ");
+        return { from: +from, symbol, to: +to, pop, push };
+    });
+
+    return new PDA(transitions, finalStates);
+}
+
+
+function findInputFile(pattern) {
+    const files = fs.readdirSync(__dirname);
+    return files.find((file) => file.match(pattern));
+}
+
+function main() {
+    const inputFile = findInputFile(/^pda_input.*\.txt$/);
+    if (!inputFile) {
+        console.error("Input file not found!");
+        return;
+    }
+
+    const pda = parsePDA(path.join(__dirname, inputFile));
+    console.log("Enter strings to check (type 'exit' to quit):");
+
+    require("readline")
+        .createInterface({ input: process.stdin, output: process.stdout })
+        .on("line", (input) => {
+            if (input.toLowerCase() === "exit") process.exit();
+            console.log(pda.processInput(input) ? "Accepted" : "Rejected");
+        });
+}
+
+main();
