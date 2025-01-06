@@ -1,5 +1,4 @@
-const fs = require("fs");
-const path = require("path");
+const readline = require("readline");
 
 class PDA {
   constructor(transitions, finalStates) {
@@ -34,58 +33,45 @@ class PDA {
   }
 }
 
-function parsePDA(filePath) {
-  try {
-    const content = fs.readFileSync(filePath, "utf8").trim().split("\n");
+function parsePDA(content) {
+  const lines = content.trim().split("\n");
+  if (lines.length < 4) throw new Error("Invalid PDA configuration.");
 
-    
-    if (content.length < 4) {
-      throw new Error("File format is incomplete or incorrect.");
-    }
+  const finalStates = lines[3].split(" ").map(Number);
+  const transitions = lines.slice(4).map((line) => {
+    const [from, symbol, to, pop, push] = line.split(" ");
+    return { from: +from, symbol, to: +to, pop, push };
+  });
 
-    const alphabetCount = parseInt(content[0]);
-    const alphabet = content[1].split(" ");
-    const finalStateCount = parseInt(content[2]);
-    const finalStates = content[3].split(" ").map(Number);
-
-    
-    if (content.length < 4 + alphabetCount) {
-      throw new Error("Transitions are missing in the file.");
-    }
-
-    const transitions = content.slice(4).map((line) => {
-      const [from, symbol, to, pop, push] = line.split(" ");
-      return { from: +from, symbol, to: +to, pop, push };
-    });
-
-    return new PDA(transitions, finalStates);
-  } catch (error) {
-    console.error("Error parsing PDA file:", error.message);
-    process.exit(1);
-  }
-}
-
-function findInputFile(pattern) {
-  const files = fs.readdirSync(__dirname);
-  const matchedFile = files.find((file) => file.match(pattern));
-  if (!matchedFile) {
-    console.error("No input file matching the pattern found!");
-    process.exit(1);
-  }
-  return matchedFile;
+  return new PDA(transitions, finalStates);
 }
 
 function main() {
-  const inputFile = findInputFile(/^pda_input.*\.txt$/);
-  const pda = parsePDA(path.join(__dirname, inputFile));
+  const content = `
+2
+a b
+1
+1
+0 a 1 # A
+1 b 1 A #
+`.trim();
 
-  console.log("Enter strings to check (type 'exit' to quit):");
-  require("readline")
-    .createInterface({ input: process.stdin, output: process.stdout })
-    .on("line", (input) => {
-      if (input.toLowerCase() === "exit") process.exit();
+  try {
+    const pda = parsePDA(content);
+
+    console.log("Enter strings to check (type 'exit' to quit):");
+    const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
+
+    rl.on("line", (input) => {
+      if (input.toLowerCase() === "exit") {
+        rl.close();
+        process.exit();
+      }
       console.log(pda.processInput(input) ? "Accepted" : "Rejected");
     });
+  } catch (error) {
+    console.error("Error:", error.message);
+  }
 }
 
 main();
